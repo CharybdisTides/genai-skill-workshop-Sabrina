@@ -1,76 +1,185 @@
-# Alaska's Department of Snow
+# Alaska Department of Snow (ADS) Chat App
 
-A demo web application showcasing GenAI integration with Google Cloud. This project demonstrates how to build an LLM-powered chat interface deployed on Cloud Run with integrated Cloud Logging.
+A simple local Flask chat application for demoing the ADS chatbot with RAG and weather forecast capabilities.
 
-## Overview
+## Setup Instructions
 
-- **Purpose**: Learning project - deployed on Cloud Run to demonstrate GenAI SDK integration with Google Cloud services
-- **Backend**: Python with FastAPI
-- **Frontend**: Svelte with responsive UI components
-- **LLM**: Google GenAI SDK
-- **Logging**: Cloud Logging (runs natively on Cloud Run)
-- **Data**: BigQuery integration for conversation logging
+### 1. Activate Virtual Environment and Install Dependencies
+
+```bash
+cd ads_app
+
+# Activate the virtual environment
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 2. Configure Environment Variables
+
+Edit the `.env` file and replace the placeholder values:
+
+```bash
+# Required:
+GCP_PROJECT_ID=your-actual-project-id
+GOOGLE_MAPS_API_KEY=your-actual-google-maps-api-key
+
+# Optional (defaults are set):
+GCP_LOCATION=us-central1
+MODEL_NAME=gemini-2.5-flash
+DATASET_NAME=alaska_dept_faq_db
+```
+
+### 3. Set up Google Cloud Authentication
+
+Make sure you're authenticated with Google Cloud:
+
+```bash
+gcloud auth application-default login
+```
+
+### 4. Run the Application
+
+```bash
+# Make sure virtual environment is activated
+source .venv/bin/activate
+
+# Run the app
+python app.py
+```
+
+The app will start on http://localhost:5000
+
+## Features
+
+- **RAG-powered FAQ**: Uses BigQuery vector search to answer questions about Alaska's Department of Snow
+- **Weather Forecasts**: Get weather forecasts for any city in Alaska using the National Weather Service API
+- **Simple Chat Interface**: Clean, minimal web UI for chatting with the bot
+
+## Usage
+
+1. Open http://localhost:5000 in your browser
+2. Type questions like:
+   - "What does ADS do?"
+   - "What's the weather in Anchorage?"
+   - "Tell me about snow removal policies"
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────┐
-│         Frontend (Svelte)                   │
-│  ┌─────────────────────────────────────┐   │
-│  │  Entry Textbox                      │   │
-│  │  History Log                        │   │
-│  │  Snowy Mountain Banner              │   │
-│  │  "Alaska Department of Snow"        │   │
-│  └─────────────────────────────────────┘   │
-└─────────────────────────────────────────────┘
-                    ↓ HTTP
-┌─────────────────────────────────────────────┐
-│      FastAPI Backend (Cloud Run)            │
-│  ┌─────────────────────────────────────┐   │
-│  │  /chat endpoint                     │   │
-│  │  GenAI SDK Integration              │   │
-│  │  Request Processing                 │   │
-│  └─────────────────────────────────────┘   │
-└─────────────────────────────────────────────┘
-         ↓              ↓              ↓
-    GenAI API    Cloud Logging    BigQuery
-```
+### Application Flow
 
-## User Flow
+```mermaid
+graph TB
+    User[User Browser] --> |HTTP Request| Flask[Flask App :5000]
+    Flask --> |Chat Request| Gemini[Google Gemini 2.5 Flash]
 
-1. User enters text in the frontend textbox
-2. Frontend sends HTTP request to FastAPI backend
-3. Backend processes request using GenAI SDK
-4. LLM generates response
-5. Conversation logged to Cloud Logging (automatic in Cloud Run environment)
-6. Response sent back to frontend
-7. Frontend updates history log and displays response
+    Gemini --> |Function Call| Tools{Function Tools}
 
-## Project Structure
+    Tools --> |rag_query| RAG[BigQuery Vector Search]
+    Tools --> |get_forecast| Weather[Weather API Chain]
 
-```
-ads_app/
-├── README.md                 # This file
-├── background/               # Backend services
-│   ├── main.py              # FastAPI entry point
-│   └── service/
-│       └── llm_generate/     # GenAI integration module
-├── frontend/                # Svelte frontend
-│   ├── templates/           # HTML templates
-│   └── static/              # Assets (CSS, JS)
-└── pytest/                  # Unit tests
+    RAG --> |Embedding Search| BQ[(BigQuery)]
+    BQ --> |FAQ Context| Gemini
+
+    Weather --> |Geocode| GMaps[Google Maps API]
+    GMaps --> |Lat/Long| NWS[National Weather Service API]
+    NWS --> |Forecast Data| Gemini
+
+    Gemini --> |Response| Flask
+    Flask --> |JSON Response| User
+
+    style Flask fill:#667eea
+    style Gemini fill:#764ba2
+    style BQ fill:#4285f4
+    style GMaps fill:#34a853
+    style NWS fill:#fbbc04
 ```
 
-## Key Dependencies
+### Services & APIs Used
 
-- **FastAPI**: REST API framework
-- **Google GenAI SDK**: LLM integration
-- **Svelte**: Frontend framework
-- **Cloud Logging**: Automatic in Cloud Run environment
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              FRONTEND LAYER                                         │
+│  ┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐         │
+│  │  Web Browser     │ ---> │ HTML/CSS/JS      │ ---> │ Chat Interface   │         │
+│  └──────────────────┘      └──────────────────┘      └──────────────────┘         │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          │ HTTP POST /chat
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                               BACKEND LAYER                                         │
+│  ┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐         │
+│  │  Flask Server    │ <--> │   app.py         │ <--> │  .env Config     │         │
+│  │  (Port 5000)     │      │  Main App Logic  │      │                  │         │
+│  └──────────────────┘      └──────────────────┘      └──────────────────┘         │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          │ Generate Response
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                         GOOGLE CLOUD PLATFORM                                       │
+│                                                                                     │
+│  ┌────────────────────────────────────────────────────────────────────────┐        │
+│  │                     Gemini 2.5 Flash (LLM)                             │        │
+│  │                      Function Calling Engine                           │        │
+│  └────────────────────────────────────────────────────────────────────────┘        │
+│            │                                          │                             │
+│            │ Function Call: rag_query                 │ Function Call: get_forecast │
+│            ▼                                          ▼                             │
+│  ┌──────────────────────┐                  ┌──────────────────────┐               │
+│  │  BigQuery            │                  │  Google Maps API     │               │
+│  │  Vector Search       │                  │  Geocoding Service   │               │
+│  │  ┌────────────────┐  │                  └──────────────────────┘               │
+│  │  │ FAQ Database   │  │                            │                             │
+│  │  │ (Embeddings)   │  │                            │ Lat/Long                    │
+│  │  └────────────────┘  │                            ▼                             │
+│  └──────────────────────┘                  ┌──────────────────────┐               │
+│            │                                │  app.py handles      │               │
+│            │ FAQ Context                    │  coordinate data     │               │
+│            ▼                                └──────────────────────┘               │
+│       Back to Gemini                                 │                             │
+└──────────────────────────────────────────────────────┼─────────────────────────────┘
+                                                       │ Coordinates
+                                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                            EXTERNAL APIs                                            │
+│  ┌────────────────────────────────────────────────────────────────────────┐        │
+│  │              National Weather Service API                              │        │
+│  │              Forecast Data (JSON)                                      │        │
+│  └────────────────────────────────────────────────────────────────────────┘        │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          │ Weather JSON
+                                          ▼
+                               Back to app.py → Gemini → Flask → User
+```
 
-## Development Notes
+### Project Structure
 
-- This is a **demo/learning project** - no production hardening
-- Unit tests located in `pytest/` directory
-- Cloud Logging integration is automatic when deployed to Cloud Run (no manual configuration needed)
-- BigQuery connection configured through Cloud Run service account permissions
+```mermaid
+graph TD
+    root[ads_app/]
+    root --> app[app.py - Flask Backend]
+    root --> env[.env - Configuration]
+    root --> req[requirements.txt]
+    root --> readme[README.md]
+    root --> git[.gitignore]
+    root --> venv[.venv/ - Virtual Environment]
+    root --> templates[templates/]
+
+    templates --> index[index.html - Chat UI]
+
+    style root fill:#667eea,color:#fff
+    style app fill:#4caf50
+    style env fill:#ff9800
+    style templates fill:#2196f3
+    style index fill:#03a9f4
+```
+
+## Notes
+
+- This is a local demo app with no authentication or security features
+- Requires active GCP project with BigQuery datasets configured
+- No containerization or production deployment setup
