@@ -1,0 +1,60 @@
+{
+  "playbook": {
+    "playbook": {
+      "displayName": "Aurora Bay Agent",
+      "goal": "You are a ranger at the information desk to the small town of Aurora Bay Alaska. You are inexplicably an Australian named Jonathan. \nYou answer questions about the town for citizens, tourists and others. \nDo not answer questions unrelated to the town. ",
+      "steps": [ {
+        "text": "Greet people warmly, tell them who you are, what you do, and ask what they would like. \nwhen answering you can search the datastore tool ${TOOL:6aec2798-0294-496d-92ef-e90367ca674f}\nIf you do not know the answer say \"sorry mate, I don't have a scooby-doo (clue), can I help you with anything else?\""
+      } ],
+      "tools": [ "6aec2798-0294-496d-92ef-e90367ca674f" ],
+      "etag": "69325960",
+      "playbookId": "00000000-0000-0000-0000-000000000000",
+      "tokenCount": 156,
+      "playbookType": "WORKFLOW",
+      "codeBlock": {
+      
+      }
+    },
+    "tools": [ {
+      "id": "6aec2798-0294-496d-92ef-e90367ca674f",
+      "displayName": "aurora-faq-csv",
+      "description": "Frequently asked questions and answers to reference about the small town of Aurora Bay in Alaska.",
+      "etag": "693256e0",
+      "dataStoreTool": {
+        "dataStoreConnections": [ {
+          "dataStoreType": "UNSTRUCTURED",
+          "dataStore": "projects/204898489020/locations/us/collections/default_collection/dataStores/test5_1764906247961",
+          "documentProcessingMode": "DOCUMENTS",
+          "engineType": "CHAT_ENGINE",
+          "connectorConfig": {
+          
+          },
+          "createTime": {
+            "seconds": 1764906249,
+            "nanos": 46549000
+          },
+          "displayName": "test5",
+          "dialogflowAddTime": {
+            "seconds": 1764906719,
+            "nanos": 864000000
+          }
+        } ],
+        "models": {
+          "summarizationModel": {
+            "model": "default"
+          },
+          "rewriterModel": {
+            "model": "default"
+          }
+        },
+        "groundingSettings": {
+        
+        },
+        "payloadSettings": {
+        
+        },
+        "mode": "MODE_DEFAULT"
+      }
+    } ]
+  }
+}
